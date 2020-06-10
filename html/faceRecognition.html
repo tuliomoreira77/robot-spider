@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="ie=edge">
+  <title>Document</title>
+  <script src="face-api.min.js"></script>
+  <style>
+    .button-container {
+        width: 500px;
+        height: 300px;
+        margin: 30px;
+        border-radius:6px;
+        border:1px solid #dcdcdc;
+    }
+    .video-container {
+        width: 500px;
+        height: 300px;
+        margin: 30px;
+        border-radius:6px;
+        border:1px solid #dcdcdc;
+        align-items: center;
+        display: flex;
+        justify-content: center;
+    }
+    .idle-active {
+        width: 500px;
+        margin: 20px;
+    }
+    .move {
+        margin: 10px;
+        width: 500px;
+        display: flex;
+    }
+    .turn {
+        margin: 10px;
+        width: 200px;
+    }
+    .walk {
+        margin: 10px;
+        width: 200px;
+    }
+    button {
+        margin: 5px;
+        width: 85px;
+        box-shadow:inset 0px 1px 0px 0px #ffffff;
+        background:linear-gradient(to bottom, #ffffff 5%, #f6f6f6 100%);
+        background-color:#ffffff;
+        border-radius:6px;
+        border:1px solid #dcdcdc;
+        display:inline-block;
+        cursor:pointer;
+        color:#666666;
+        font-family:Arial;
+        font-size:12px;
+        font-weight:bold;
+        padding:6px 0px;
+        text-decoration:none;
+        text-shadow:0px 1px 0px #ffffff;
+    }
+    button:hover {
+        background:linear-gradient(to bottom, #f6f6f6 5%, #ffffff 100%);
+        background-color:#f6f6f6;
+    }
+    button:active {
+        position:relative;
+        top:1px;
+    }
+    </style>
+    <body>
+    <div id="button-container" class="button-container">
+        <div class="idle-active">
+            <button type="button" onclick="Commander.initRobot()">Inicializar</button>
+            <button type="button" onclick="Commander.sendData('0')">Levantar</button>
+            <button type="button" onclick="Commander.sendData('1')">Sentar</button><BR>
+        </div>
+        <div class="move">
+            <div class="walk">
+                <button type="button" onclick="Commander.sendData('2')">Frente</button><br>
+                <button type="button" onclick="Commander.sendData('3')">Tras</button>
+            </div>
+            <div class="turn">
+                <button type="button" onclick="Commander.sendData('4')">Esquerda</button>
+                <button type="button" onclick="Commander.sendData('5')">Direita</button><BR>
+            </div>
+        </div>
+        <div class="idle-active">
+            <button type="button" onclick="Commander.sendData('9')">Acordar</button>
+            <button type="button" onclick="Commander.sendData('8')">Dormir</button><BR>
+        </div>
+    </div>
+    <div class="video-container">
+        <video id="video" width="320" height="240" autoplay muted>    
+        </video>
+    </div>
+<script src="convertSong.js"></script>
+<script src="commands.js"></script>
+<script>
+    const video = document.getElementById('video')
+    Promise.all([
+        faceapi.nets.tinyFaceDetector.loadFromUri('/models'),
+        faceapi.nets.faceExpressionNet.loadFromUri('/models')
+    ])
+
+    function startVideo() {
+        navigator.getUserMedia(
+            { video: {} },
+            stream => video.srcObject = stream,
+            err => console.error(err)
+        )
+    }
+
+    let Expression = function() {
+        let count = 0;
+        let expressionsObject = {
+            angry: 0,
+            disgusted: 0,
+            fearful: 0,
+            happy: 0,
+            neutral: 0,
+            sad: 0,
+            surprised: 0
+        };
+
+        let addToArray = function(element) {
+            if(element[0]) {
+                for(let key of Object.keys(element[0].expressions)) {
+                    expressionsObject[key] = expressionsObject[key] + element[0].expressions[key];
+                }
+            }
+        }
+
+        let getExpression = function() {
+            let expressionMostValuable =  Object.keys(expressionsObject).reduce(function(a, b){ return expressionsObject[a] > expressionsObject[b] ? a : b });
+            expressionsObject = {
+                angry: 0,
+                disgusted: 0,
+                fearful: 0,
+                happy: 0,
+                neutral: 0,
+                sad: 0,
+                surprised: 0
+            }
+            count = 0;
+            return expressionMostValuable;
+        }
+
+        return {
+            addToArray,
+            getExpression
+        }
+    }();
+
+    video.addEventListener('play', () => {
+        const canvas = faceapi.createCanvasFromMedia(video)
+        document.body.append(canvas)
+        const displaySize = { width: video.width, height: video.height }
+        let count = 0;
+        faceapi.matchDimensions(canvas, displaySize)
+            setInterval(async () => {
+                const detections = await faceapi.detectAllFaces(video, new faceapi.TinyFaceDetectorOptions()).withFaceExpressions();
+                const resizedDetections = faceapi.resizeResults(detections, displaySize);
+                canvas.getContext('2d').clearRect(0, 0, canvas.width, canvas.height);
+                faceapi.draw.drawDetections(canvas, resizedDetections);
+                faceapi.draw.drawFaceExpressions(canvas, resizedDetections);
+                Expression.addToArray(detections);
+                count++;
+                if(count > 30) {
+                    let actualExpression = Expression.getExpression(); 
+                    sendFace(actualExpression);
+                    count = 0;
+                }
+            }, 100)
+    });
+</script>
+</html>

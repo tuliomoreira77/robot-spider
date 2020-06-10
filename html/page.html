@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html>
+    <body>
+        <div id="demo">
+        <h1></h1>
+            <button type="button" onclick="sendData('0')">Levantar</button>
+            <button type="button" onclick="sendData('1')">Sentar</button><BR>
+            <button type="button" onclick="sendData('2')">Frente</button>
+            <button type="button" onclick="sendData('3')">Tras</button><BR>
+            <button type="button" onclick="sendData('4')">Esquerda</button>
+            <button type="button" onclick="sendData('5')">Direita</button><BR>
+            <button type="button" onclick="sendData('6')">Acenar</button>
+            <button type="button" onclick="sendData('7')">Acenar2</button>
+        </div>
+        <script>     
+        function sendData(command) {
+            var xhttp = new XMLHttpRequest();
+            xhttp.onreadystatechange = function() {
+                if (this.readyState == 4 && this.status == 200) {
+                    console.log('Enviado sucesso');
+                }
+            };
+            xhttp.open("GET", "sendCommand?command=" + command, true);
+            xhttp.send();
+        }
+        </script>
+    </body>
+</html>
