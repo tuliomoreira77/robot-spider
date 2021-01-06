@@ -9,7 +9,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "axios": "^0.19.2",
+    "axios": "^0.21.1",
     "bonjour": "^3.5.0",
     "mdns-js": "^1.0.3",
     "mongoose": "^5.9.26",
